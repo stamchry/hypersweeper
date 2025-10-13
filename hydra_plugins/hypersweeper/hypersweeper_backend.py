@@ -8,6 +8,7 @@ from collections.abc import Callable
 from functools import reduce
 from pathlib import Path
 from typing import TYPE_CHECKING
+import numpy as np
 
 from hydra.core.plugins import Plugins
 from hydra.plugins.sweeper import Sweeper
@@ -154,11 +155,17 @@ class HypersweeperBackend(Sweeper):
             budget=self.budget,
             n_trials=self.n_trials,
             base_dir=self.sweep_dir,
+            task_function=self.task_function,  # Add this line
             cs=configspace,
             **self.sweeper_kwargs,
         )
 
         incumbent = optimizer.run(verbose=True)
+
+        # This can happen if the optimizer terminates early without a valid incumbent
+        if incumbent is None:
+            log.warning("Optimizer returned no incumbent. Skipping final_config.yaml generation.")
+            return None
 
         final_config = self.config
         with open_dict(final_config):
@@ -175,7 +182,13 @@ class HypersweeperBackend(Sweeper):
             for k, v in incumbent[i].items():
                 if k not in schedules:
                     schedules[k] = []
-                schedules[k].append(v)
+                # --- FIX STARTS HERE ---
+                # Convert numpy types to standard python types for OmegaConf compatibility
+                if isinstance(v, np.generic):
+                    schedules[k].append(v.item())
+                else:
+                    schedules[k].append(v)
+                # --- FIX ENDS HERE ---
         for k in schedules:
             key_parts = k.split(".")
             reduce(operator.getitem, key_parts[:-1], final_config)[key_parts[-1]] = schedules[k]

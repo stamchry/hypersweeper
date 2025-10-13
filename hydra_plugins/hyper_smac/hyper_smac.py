@@ -64,7 +64,7 @@ def make_smac(configspace, smac_args):
     """Make a SMAC instance for optimization."""
 
     def dummy_func(arg, seed, budget):  # noqa:ARG001
-        return 0.0
+        return 0.0, 0.0
 
     if "output_directory" in smac_args["scenario"]:
         smac_args["scenario"]["output_directory"] = Path(smac_args["scenario"]["output_directory"])

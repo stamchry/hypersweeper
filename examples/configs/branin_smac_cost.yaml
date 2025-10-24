@@ -1,0 +1,31 @@
+
+defaults:
+  - _self_
+  - target_function: branin
+  - search_space: branin
+  - override hydra/sweeper: HyperSMAC
+
+hydra:
+  sweeper:
+    n_trials: 50
+    sweeper_kwargs:
+      seeds: [0,1,2]
+      max_parallelization: 0
+      optimizer_kwargs:
+        smac_facade: 
+          _target_: smac.facade.cost_aware_facade.CostAwareFacade
+          total_resource_budget: 30
+          _partial_: true
+          logging_level: 10  # 10 DEBUG, 20 INFO
+          overwrite: true
+        scenario:
+          seed: 42
+          n_trials: ${hydra.sweeper.n_trials}
+          deterministic: false
+          n_workers: 4
+          output_directory: ${hydra.sweep.dir}
+    search_space: ${search_space}
+  run:
+    dir: ./tmp/branin_smac_new_no_intensifier/
+  sweep:
+    dir: ./tmp/branin_smac_new_no_intensifier/

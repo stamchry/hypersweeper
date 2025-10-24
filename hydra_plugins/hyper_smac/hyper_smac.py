@@ -76,7 +76,11 @@ class HyperSMACAdapter:
     def tell(self, info, value):
         """Tell the result of the configuration."""
         smac_info = TrialInfo(info.config, seed=info.seed, budget=info.budget)
-        smac_value = TrialValue(time=value.cost, cost=value.performance)
+        # For cost-aware optimization, the resource cost is expected in additional_info
+        additional_info = {}
+        if value.cost is not None:
+            additional_info["resource_cost"] = value.cost
+        smac_value = TrialValue(time=value.cost, cost=value.performance, additional_info=additional_info)
         self.smac.tell(smac_info, smac_value)
 
     def finish_run(self, output_path):

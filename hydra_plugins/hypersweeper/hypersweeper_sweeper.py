@@ -281,26 +281,30 @@ class HypersweeperSweeper:
         res = self.launcher.launch(overrides, initial_job_idx=self.job_idx)
         self.job_idx += len(overrides)
 
-        # Extract the actual costs from the return values if they are dictionaries
-        if self.seeds:
-            n_seeds = len(self.seeds)
-            costs = [
-                np.mean([r.return_value.get("cost", 0.0) for r in res[i * n_seeds : (i + 1) * n_seeds]])
-                for i in range(len(res) // n_seeds)
-            ]
-        else:
-            costs = [r.return_value.get("cost", 0.0) for r in res]
-
         performances = []
+        costs = []
         if self.seeds and self.deterministic:
             # When we have seeds, we want to have a list of performances for each config
             n_seeds = len(self.seeds)
             for config_idx in range(len(overrides) // n_seeds):
-                performances.append([res[config_idx * n_seeds + seed_idx].return_value for seed_idx in range(n_seeds)])
+                perf_list = []
+                cost_list = []
+                for seed_idx in range(n_seeds):
+                    ret = res[config_idx * n_seeds + seed_idx].return_value
+                    if isinstance(ret, dict):
+                        perf_list.append(ret)
+                        cost_list.append(ret.get("cost", 0.0))
+                    else:
+                        perf_list.append(ret)
+                        cost_list.append(0.0)
+                performances.append(perf_list)
+                costs.append(cost_list)
                 self.trials_run += 1
         else:
             for j in range(len(overrides)):
-                performances.append(res[j].return_value)
+                ret = res[j].return_value
+                performances.append(ret)
+                costs.append(ret.get("cost", 0.0) if isinstance(ret, dict) else 0.0)
                 self.trials_run += 1
         return performances, costs
 
@@ -403,8 +407,11 @@ class HypersweeperSweeper:
                     for seed_idx, seed in enumerate(self.seeds):
                         self.history[f"performance_{self.seed_keyword}_{seed}"].append(performances[i][seed_idx])
             else:
-                self.history["performance"].append(performances[i]["performance"])
-                self.history["cost"].append(performances[i]["cost"])
+                if isinstance(performances[i], dict):
+                    self.history["performance"].append(performances[i]["performance"])
+                    self.history["cost"].append(performances[i].get("cost", 0.0))
+                else:
+                    self.history["performance"].append(performances[i])
             if budgets[i] is not None:
                 self.history["budget"].append(budgets[i])
             else:
@@ -517,7 +524,7 @@ class HypersweeperSweeper:
             if self.seeds and self.deterministic:
                 seeds = np.zeros(len(performances))
 
-            for info, performance, cost in zip(infos, performances, costs, strict=True):
+            for i, (info, performance, cost) in enumerate(zip(infos, performances, costs, strict=True)):
                 if self.seeds:
                     # performance is a list of dicts or a list of floats
                     run_performance = float(np.mean([p["performance"] if isinstance(p, dict) else p for p in performance]))
@@ -525,15 +532,14 @@ class HypersweeperSweeper:
                     run_performance = performance["performance"] if isinstance(performance, dict) else performance
 
                 
-                logged_performance = -run_performance if self.maximize else run_performance
-                value = Result(performance=logged_performance, cost=cost)
+                logged_performance = -float(run_performance) if self.maximize else float(run_performance)
+                value = Result(performance=logged_performance, cost=np.sum(costs[i]))
                 self.optimizer.tell(info=info, value=value)
 
                 # The `_stop` attribute is on the internal SMBO object within the SMAC facade.
                 # We check this flag to see if a callback (like BudgetExhaustedCallback) has requested a stop.
-                # Check if a callback (like BudgetExhaustedCallback) has requested a stop.
-                if self.optimizer.smac._optimizer._stop:
-                    callback_termination = True
+                if hasattr(self.optimizer, "smac") and self.optimizer.smac._optimizer._stop:
+                     callback_termination = True
 
             self.write_history(performances, configs, budgets)
             self.write_incumbents()

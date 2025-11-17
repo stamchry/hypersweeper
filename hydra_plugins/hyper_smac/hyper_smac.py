@@ -8,7 +8,7 @@ import pandas as pd
 from hydra.utils import get_class
 from hydra_plugins.hypersweeper.utils import Info, convert_to_configuration
 from omegaconf import OmegaConf
-from smac import Scenario
+from smac.scenario import Scenario
 from smac.facade import HyperparameterOptimizationFacade
 from smac.intensifier.hyperband import Hyperband
 from smac.runhistory.dataclasses import TrialInfo, TrialValue

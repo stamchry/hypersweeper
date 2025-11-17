@@ -165,7 +165,9 @@ class HypersweeperBackend(Sweeper):
 
         for k, v in incumbent.items():
             if isinstance(v, np.integer | np.floating):
-                v = v.item()  # noqa: PLW2901
+                v = v.item()
+            if isinstance(v, np.bool_):
+                v = bool(v)
             if isinstance(v, np.str_):
                 v = str(v)  # noqa: PLW2901
             OmegaConf.update(final_config, k, v, force_add=True)

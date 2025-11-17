@@ -502,7 +502,7 @@ class HypersweeperSweeper:
                         self.write_history(performances, configs, budgets)
                     print("Optimizer failed on ask - terminating optimization.")
                     print(f"Error was: {e}")
-                    return self.incumbents[-1]
+                    return self.incumbents["config"][-1]
 
                 configs.append(info.config)
                 t += 1

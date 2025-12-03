@@ -7,7 +7,7 @@ from pathlib import Path
 import pandas as pd
 from hydra.utils import get_class
 from hydra_plugins.hypersweeper.utils import Info, convert_to_configuration
-from omegaconf import OmegaConf
+from omegaconf import OmegaConf, ListConfig
 from smac.scenario import Scenario
 from smac.facade import HyperparameterOptimizationFacade
 from smac.intensifier.hyperband import Hyperband
@@ -102,7 +102,7 @@ def make_smac(configspace, smac_args):
         smac_kwargs["callbacks"] = []
     elif "callbacks" in smac_args and isinstance(smac_args["callbacks"], dict):
         smac_kwargs["callbacks"] = list(smac_args["callbacks"].values())
-    elif "callbacks" in smac_args and isinstance(smac_args["callbacks"], list):
+    elif "callbacks" in smac_args and isinstance(smac_args["callbacks"], (list, ListConfig)):
         smac_kwargs["callbacks"] = smac_args["callbacks"]
 
     if "acquisition_function" in smac_args and "acquisition_maximizer" in smac_args:
@@ -119,9 +119,19 @@ def make_smac(configspace, smac_args):
         smac_kwargs["config_selector"] = smac_args["config_selector"](scenario=scenario)
 
     if "initial_design" in smac_args:
-        if "warmstart_file" in smac_args["initial_design"]:
+        initial_design_obj = smac_args["initial_design"]
+        warmstart_file = None
+
+        # Check if it is a partial (instantiated by Hydra) and look in keywords
+        if hasattr(initial_design_obj, "keywords") and "warmstart_file" in initial_design_obj.keywords:
+            warmstart_file = initial_design_obj.keywords["warmstart_file"]
+        # Fallback: Check if it is a dict/DictConfig (raw config)
+        elif hasattr(initial_design_obj, "__getitem__") and "warmstart_file" in initial_design_obj:
+            warmstart_file = initial_design_obj["warmstart_file"]
+
+        if warmstart_file:
             config_list = read_additional_configs(
-                initial_design_fn=smac_args["initial_design"]["warmstart_file"],
+                initial_design_fn=warmstart_file,
                 configspace=configspace,
             )
             initial_design = HyperparameterOptimizationFacade.get_initial_design(

@@ -44,12 +44,6 @@ class HyperSMACAdapter:
     def __init__(self, smac):
         """Initialize the adapter."""
         self.smac = smac
-        self.hyperband = False
-        if isinstance(self.smac._intensifier, Hyperband):
-            self.hyperband = True
-            self.total_configs = 0
-            self.current_bracket = 0
-            self.brackets_finished = False
 
     def ask(self):
         """Ask for the next configuration."""
@@ -57,19 +51,6 @@ class HyperSMACAdapter:
         info = Info(config=smac_info.config, budget=smac_info.budget, load_path=None, seed=smac_info.seed)
         terminate = False
         optimizer_termination = False
-        if self.hyperband:
-            self.total_configs += 1
-            if self.current_bracket >= len(self.smac._intensifier._n_configs_in_stage):
-                self.brackets_finished = True
-                optimizer_termination = True
-                print("All brackets finished. Optimization will terminate.")
-
-            if not self.brackets_finished and self.total_configs >= sum(
-                self.smac._intensifier._n_configs_in_stage[self.current_bracket]
-            ):
-                self.current_bracket += 1
-                self.total_configs = 0
-                terminate = True
 
         return info, terminate, optimizer_termination
 

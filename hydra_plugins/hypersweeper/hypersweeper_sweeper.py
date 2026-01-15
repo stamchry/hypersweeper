@@ -292,7 +292,7 @@ class HypersweeperSweeper:
                 for seed_idx in range(n_seeds):
                     ret = res[config_idx * n_seeds + seed_idx].return_value
                     if isinstance(ret, dict):
-                        perf_list.append(ret)
+                        perf_list.append(ret.get("performance", 0.0))
                         cost_list.append(ret.get("cost", 0.0))
                     else:
                         perf_list.append(ret)
@@ -524,16 +524,13 @@ class HypersweeperSweeper:
             if self.seeds and self.deterministic:
                 seeds = np.zeros(len(performances))
 
-            for i, (info, performance, cost) in enumerate(zip(infos, performances, costs, strict=True)):
-                if self.seeds:
-                    # performance is a list of dicts or a list of floats
-                    run_performance = float(np.mean([p["performance"] if isinstance(p, dict) else p for p in performance]))
-                else:
-                    run_performance = performance["performance"] if isinstance(performance, dict) else performance
+            for info, performance, cost in zip(infos, performances, costs, strict=True):
+                run_performance = float(np.mean(performance)) if self.seeds else performance
+                run_cost = float(np.mean(cost)) if self.seeds else cost
 
                 
-                logged_performance = -float(run_performance) if self.maximize else float(run_performance)
-                value = Result(performance=logged_performance, cost=np.sum(costs[i]))
+                logged_performance = -run_performance if self.maximize else run_performance
+                value = Result(performance=logged_performance, cost=run_cost)
                 self.optimizer.tell(info=info, value=value)
 
                 # The `_stop` attribute is on the internal SMBO object within the SMAC facade.

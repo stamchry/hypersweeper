@@ -526,7 +526,7 @@ class HypersweeperSweeper:
 
             for info, performance, cost in zip(infos, performances, costs, strict=True):
                 run_performance = float(np.mean(performance)) if self.seeds else performance
-                run_cost = float(np.mean(cost)) if self.seeds else cost
+                run_cost = float(np.sum(cost)) if self.seeds else cost
 
                 
                 logged_performance = -run_performance if self.maximize else run_performance

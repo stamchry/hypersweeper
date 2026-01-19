@@ -303,8 +303,12 @@ class HypersweeperSweeper:
         else:
             for j in range(len(overrides)):
                 ret = res[j].return_value
-                performances.append(ret)
-                costs.append(ret.get("cost", 0.0) if isinstance(ret, dict) else 0.0)
+                if isinstance(ret, dict):
+                    performances.append(ret.get("performance", 0.0))
+                    costs.append(ret.get("cost", 0.0))
+                else:
+                    performances.append(ret)
+                    costs.append(0.0)
                 self.trials_run += 1
         return performances, costs
 
@@ -377,7 +381,11 @@ class HypersweeperSweeper:
         full_dataframe.to_csv(Path(self.output_dir) / f"{filename}.csv", index=False)
 
     def write_history(
-        self, performances: list[list[float]] | list[float], configs: list[Configuration], budgets: list[float]
+        self,
+        performances: list[list[float]] | list[float],
+        configs: list[Configuration],
+        budgets: list[float],
+        costs: list[list[float]] | list[float],
     ) -> None:
         """Write the history of the optimization to a csv file.
 
@@ -389,29 +397,23 @@ class HypersweeperSweeper:
             A list of the recent configs
         budgets: list[float]
             A list of the recent budgets
+        costs: Union[list[list[float]], list[float]]
+            A list of the latest agent costs
         """
         for i in range(len(configs)):
             self.history["config"].append(configs[i])
             if self.seeds:
                 # In this case we have a list of performances for each config,
                 # one for each seed
-                # performances[i] can be a list of dicts
-                if isinstance(performances[i][0], dict):
-                    self.history["performance"].append(np.mean([p["performance"] for p in performances[i]]))
-                    self.history["cost"].append(np.mean([p["cost"] for p in performances[i]]))
-                    for seed_idx, seed in enumerate(self.seeds):
-                        self.history[f"performance_{self.seed_keyword}_{seed}"].append(performances[i][seed_idx]["performance"])
-                        self.history[f"cost_{self.seed_keyword}_{seed}"].append(performances[i][seed_idx]["cost"])
-                else:
-                    self.history["performance"].append(np.mean(performances[i]))
-                    for seed_idx, seed in enumerate(self.seeds):
-                        self.history[f"performance_{self.seed_keyword}_{seed}"].append(performances[i][seed_idx])
+                self.history["performance"].append(np.mean(performances[i]))
+                self.history["cost"].append(np.mean(costs[i]))
+                for seed_idx, seed in enumerate(self.seeds):
+                    self.history[f"performance_{self.seed_keyword}_{seed}"].append(performances[i][seed_idx])
+                    self.history[f"cost_{self.seed_keyword}_{seed}"].append(costs[i][seed_idx])
             else:
-                if isinstance(performances[i], dict):
-                    self.history["performance"].append(performances[i]["performance"])
-                    self.history["cost"].append(performances[i].get("cost", 0.0))
-                else:
-                    self.history["performance"].append(performances[i])
+                self.history["performance"].append(performances[i])
+                self.history["cost"].append(costs[i])
+
             if budgets[i] is not None:
                 self.history["budget"].append(budgets[i])
             else:
@@ -538,7 +540,7 @@ class HypersweeperSweeper:
                 if hasattr(self.optimizer, "smac") and self.optimizer.smac._optimizer._stop:
                      callback_termination = True
 
-            self.write_history(performances, configs, budgets)
+            self.write_history(performances, configs, budgets, costs)
             self.write_incumbents()
 
             if verbose:

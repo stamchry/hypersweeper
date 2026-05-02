@@ -1,3 +1,18 @@
+# HyperSweeper - Thesis Orchestration Tool
+
+This is a fork of [HyperSweeper](https://github.com/automl/hypersweeper).
+
+> ### 🎓 Master Thesis Research
+> This repository provides the tooling used to manage the experimental evaluations for the thesis:
+> **"Cost-Aware Bayesian Optimisation for Reinforcement Learning" (2026)**.
+> 
+> **The exact snapshot used for the results is preserved here:**
+> 👉 **[Release v1.0-thesis](https://github.com/stamchry/hypersweeper/releases/tag/v1.0-thesis)**
+>
+> **Related Repositories:**
+> * [SMAC3 (Optimizer Implementation)](https://github.com/stamchry/SMAC3/releases/tag/v1.0-thesis)
+> * [ARLBench (Configurations & Data)](https://github.com/stamchry/arlbench/releases/tag/v1.0-thesis)
+
 # HyperSweeper
 
 [![PyPI Version](https://img.shields.io/pypi/v/hypersweeper.svg)](https://pypi.python.org/pypi/hypersweeper)
